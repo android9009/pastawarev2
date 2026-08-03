@@ -1,22 +1,33 @@
 #include "common.hpp"
+#include "menu.hpp"
 
 // Основная логика, работающая в отдельном потоке после загрузки DLL
 DWORD WINAPI MainThread(LPVOID lpParam) {
     // Выделяем консоль для удобной отладки
     AllocConsole();
-    FILE* fDummy;
+    FILE* fDummy = nullptr;
     freopen_s(&fDummy, "CONOUT$", "w", stdout);
 
     std::cout << "[+] DLL успешно загружена в процесс!" << std::endl;
-    std::cout << "[+] Для выгрузки DLL зажмите клавишу [END / ENDE]" << std::endl;
+    std::cout << "[+] INSERT — открыть/скрыть меню" << std::endl;
+    std::cout << "[+] END — выгрузить DLL" << std::endl;
 
-    // Простейший цикл жизни DLL
-    while (!GetAsyncKeyState(VK_END)) {
-        // Здесь будет твоя основная логика работы DLL
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (!menu::start()) {
+        std::cout << "[!] Не удалось запустить поток интерфейса." << std::endl;
+    }
+
+    // Меню обрабатывает сообщения в собственном потоке. Здесь остаётся
+    // только горячая клавиша и контроль жизненного цикла DLL.
+    while (!(GetAsyncKeyState(VK_END) & 0x8000)) {
+        if (GetAsyncKeyState(VK_INSERT) & 1) {
+            menu::toggle();
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
     std::cout << "[-] Запущен процесс выгрузки DLL..." << std::endl;
+    menu::stop();
 
     // Освобождаем консоль и закрываем потоки
     if (fDummy) {

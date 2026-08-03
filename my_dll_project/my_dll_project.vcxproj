@@ -46,24 +46,30 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\intermediates\$(Configuration)\</IntDir>
+    <IncludePath>external\xdraw\dependencies\freetype\x;$(IncludePath)</IncludePath>
+    <LibraryPath>external\xdraw\dependencies\freetype\x;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\intermediates\$(Configuration)\</IntDir>
+    <IncludePath>external\xdraw\dependencies\freetype\x;$(IncludePath)</IncludePath>
+    <LibraryPath>external\xdraw\dependencies\freetype\x;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;MYDLLPROJECT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;NOMINMAX;WIN32_LEAN_AND_MEAN;MYDLLPROJECT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;windowscodecs.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -72,10 +78,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;MYDLLPROJECT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;NOMINMAX;WIN32_LEAN_AND_MEAN;MYDLLPROJECT_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -83,15 +90,35 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;windowscodecs.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\dllmain.cpp" />
+    <ClCompile Include="src\hooks.cpp" />
+    <ClCompile Include="src\context.cpp" />
     <ClCompile Include="src\menu.cpp" />
+    <ClCompile Include="external\xdraw\xdraw.cpp" />
+    <ClCompile Include="external\xdraw\xui\xui.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\common.hpp" />
+    <ClInclude Include="src\pch.hpp" />
+    <ClInclude Include="src\memory.hpp" />
+    <ClInclude Include="src\hooks.hpp" />
+    <ClInclude Include="src\context.hpp" />
     <ClInclude Include="src\menu.hpp" />
+    <ClInclude Include="src\settings.hpp" />
+    <ClInclude Include="src\menu_svgs.hpp" />
+    <ClInclude Include="src\menu_assets.hpp" />
+    <ClInclude Include="external\xdraw\xdraw.hpp" />
+    <ClInclude Include="external\xdraw\xui\xui.hpp" />
+    <ClInclude Include="external\xdraw\dependencies\shaders.hpp" />
+    <ClInclude Include="external\xdraw\dependencies\fonts.hpp" />
+    <ClInclude Include="external\xdraw\dependencies\freetype\include.hpp" />
+    <ClInclude Include="external\xdraw\dependencies\nanosvg\include.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="external\xdraw\dependencies\freetype\x\freetype.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,59 +1,54 @@
-#include "common.hpp"
+#include "pch.hpp"
+
+#include "hooks.hpp"
 #include "menu.hpp"
+#include "context.hpp"
 
-// Основная логика, работающая в отдельном потоке после загрузки DLL
-DWORD WINAPI MainThread(LPVOID lpParam) {
-    // Выделяем консоль для удобной отладки
-    AllocConsole();
-    FILE* fDummy = nullptr;
-    freopen_s(&fDummy, "CONOUT$", "w", stdout);
+// Основная логика, работающая в отдельном потоке после загрузки DLL.
+// Никакой консоли и внешних окон - всё рисуется прямо в игре.
+DWORD WINAPI MainThread( LPVOID lpParam )
+{
+	// Ждём появления окна игры и цепляем хуки (идемпотентно, повторяем).
+	// Клавиша меню обрабатывается в перехваченном WndProc (по умолчанию
+	// INSERT), здесь остаётся только контроль выгрузки по END.
+	while ( !hooks::unload_requested( ) )
+	{
+		if ( !hooks::is_ready( ) )
+		{
+			hooks::initialize( );
+		}
 
-    std::cout << "[+] DLL успешно загружена в процесс!" << std::endl;
-    std::cout << "[+] INSERT — открыть/скрыть меню" << std::endl;
-    std::cout << "[+] END — выгрузить DLL" << std::endl;
+		if ( GetAsyncKeyState( VK_END ) & 1 )
+		{
+			hooks::request_unload( );
+			break;
+		}
 
-    if (!menu::start()) {
-        std::cout << "[!] Не удалось запустить поток интерфейса." << std::endl;
-    }
+		Sleep( 10 );
+	}
 
-    // Меню обрабатывает сообщения в собственном потоке. Здесь остаётся
-    // только горячая клавиша и контроль жизненного цикла DLL.
-    while (!(GetAsyncKeyState(VK_END) & 0x8000)) {
-        if (GetAsyncKeyState(VK_INSERT) & 1) {
-            menu::toggle();
-        }
+	// Корректно снимаем хуки и освобождаем лок мыши, если он был взят.
+	rendering::g_menu.shutdown( );
+	rendering::g_context.shutdown( );
+	hooks::shutdown( );
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
-    }
-
-    std::cout << "[-] Запущен процесс выгрузки DLL..." << std::endl;
-    menu::stop();
-
-    // Освобождаем консоль и закрываем потоки
-    if (fDummy) {
-        fclose(fDummy);
-    }
-    FreeConsole();
-
-    // Выгружаем саму себя из памяти процесса и завершаем поток
-    FreeLibraryAndExitThread((HMODULE)lpParam, 0);
-    return 0;
+	FreeLibraryAndExitThread( static_cast< HMODULE >( lpParam ), 0 );
+	return 0;
 }
 
-// Точка входа для динамической библиотеки (DLL)
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
-    switch (ul_reason_for_call) {
-    case DLL_PROCESS_ATTACH:
-        // Отключаем вызовы DLL_THREAD_ATTACH и DLL_THREAD_DETACH для оптимизации
-        DisableThreadLibraryCalls(hModule);
-        
-        // Создаем отдельный поток, чтобы не блокировать основной поток загрузчика
-        if (HANDLE hThread = CreateThread(nullptr, 0, MainThread, hModule, 0, nullptr)) {
-            CloseHandle(hThread);
-        }
-        break;
-    case DLL_PROCESS_DETACH:
-        break;
-    }
-    return TRUE;
+BOOL APIENTRY DllMain( HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved )
+{
+	switch ( ul_reason_for_call )
+	{
+	case DLL_PROCESS_ATTACH:
+		DisableThreadLibraryCalls( hModule );
+		CreateThread( nullptr, 0, MainThread, hModule, 0, nullptr );
+		break;
+	case DLL_PROCESS_DETACH:
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
+		break;
+	}
+
+	return TRUE;
 }

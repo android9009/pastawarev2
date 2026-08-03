@@ -1,7 +1,20 @@
 #include "menu.hpp"
 
+// menu.cpp is compiled separately from dllmain.cpp, so these guards must be
+// set before Windows headers are included in this translation unit.
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <windowsx.h>
+
+// rpcndr.h may export this legacy macro; it is unsafe in modern C++ code.
+#ifdef small
+#undef small
+#endif
 
 #include <algorithm>
 #include <array>
@@ -65,7 +78,7 @@ struct font_bank {
     HFONT heading{};
     HFONT body{};
     HFONT body_bold{};
-    HFONT small{};
+    HFONT small_font{};
     HFONT mono{};
 
     [[nodiscard]] static HFONT make(const int pixel_height, const int weight, const wchar_t* face = L"Segoe UI") {
@@ -92,12 +105,12 @@ struct font_bank {
         heading = make(18, FW_SEMIBOLD);
         body = make(14, FW_NORMAL);
         body_bold = make(14, FW_SEMIBOLD);
-        small = make(12, FW_NORMAL);
+        small_font = make(12, FW_NORMAL);
         mono = make(12, FW_SEMIBOLD, L"Cascadia Mono");
     }
 
     void release() {
-        for (const auto font : { display, heading, body, body_bold, small, mono }) {
+        for (const auto font : { display, heading, body, body_bold, small_font, mono }) {
             if (font) {
                 DeleteObject(font);
             }
@@ -107,7 +120,7 @@ struct font_bank {
         heading = nullptr;
         body = nullptr;
         body_bold = nullptr;
-        small = nullptr;
+        small_font = nullptr;
         mono = nullptr;
     }
 };
@@ -265,7 +278,7 @@ void draw_mode_button(HDC dc, const int index, const wchar_t* label) {
     const auto bounds = k_mode_buttons[index];
     rounded_rect(dc, bounds, 8, selected ? colors::accent_soft : colors::background,
         selected ? colors::accent : colors::border);
-    text(dc, label, bounds, g_fonts.small, selected ? colors::text : colors::muted,
+    text(dc, label, bounds, g_fonts.small_font, selected ? colors::text : colors::muted,
         DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
@@ -280,10 +293,10 @@ void draw_menu(HDC dc, const int width, const int height) {
     circle(dc, 35, 39, 3, colors::text, colors::text);
     text(dc, L"PASTAWARE", { 62, 20, 94, 20 }, g_fonts.body_bold, colors::text,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    text(dc, L"CS2  /  BUILD 01", { 62, 40, 100, 16 }, g_fonts.small, colors::muted,
+    text(dc, L"CS2  /  BUILD 01", { 62, 40, 100, 16 }, g_fonts.small_font, colors::muted,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
-    text(dc, L"WORKSPACE", { 18, 95, 126, 18 }, g_fonts.small, colors::muted,
+    text(dc, L"WORKSPACE", { 18, 95, 126, 18 }, g_fonts.small_font, colors::muted,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     for (int index = 0; index < k_tab_count; ++index) {
         draw_tab(dc, index);
@@ -292,9 +305,9 @@ void draw_menu(HDC dc, const int width, const int height) {
     // Sidebar footer.
     line(dc, 18, 600, 154, 600, colors::border);
     circle(dc, 29, 627, 5, colors::success, colors::success);
-    text(dc, L"READY", { 42, 616, 90, 18 }, g_fonts.small, colors::text,
+    text(dc, L"READY", { 42, 616, 90, 18 }, g_fonts.small_font, colors::text,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    text(dc, L"local session", { 42, 634, 95, 16 }, g_fonts.small, colors::muted,
+    text(dc, L"local session", { 42, 634, 95, 16 }, g_fonts.small_font, colors::muted,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     rounded_rect(dc, { 18, 663, 136, 28 }, 8, colors::surface, colors::border);
     text(dc, L"INSERT  TOGGLE", { 18, 663, 136, 28 }, g_fonts.mono, colors::muted,
@@ -310,7 +323,7 @@ void draw_menu(HDC dc, const int width, const int height) {
 
     rounded_rect(dc, { 390, 66, 86, 23 }, 12, colors::surface, colors::border);
     circle(dc, 404, 77, 3, colors::success, colors::success);
-    text(dc, L"LIVE", { 413, 66, 52, 23 }, g_fonts.small, colors::text,
+    text(dc, L"LIVE", { 413, 66, 52, 23 }, g_fonts.small_font, colors::text,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     rounded_rect(dc, k_close_button, 8, colors::surface, colors::border);
@@ -319,36 +332,36 @@ void draw_menu(HDC dc, const int width, const int height) {
 
     // General card.
     rounded_rect(dc, { 196, 120, 280, 170 }, 14, colors::surface, colors::border);
-    text(dc, L"GENERAL", { 212, 134, 130, 18 }, g_fonts.small, colors::accent_blue,
+    text(dc, L"GENERAL", { 212, 134, 130, 18 }, g_fonts.small_font, colors::accent_blue,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     text(dc, current.primary_label, { 212, 154, 190, 20 }, g_fonts.body_bold, colors::text,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-    text(dc, current.primary_description, { 212, 174, 190, 17 }, g_fonts.small, colors::muted,
+    text(dc, current.primary_description, { 212, 174, 190, 17 }, g_fonts.small_font, colors::muted,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     draw_switch(dc, k_primary_toggle, g_state.primary[g_state.active_tab]);
 
     line(dc, 212, 196, 460, 196, colors::border);
     text(dc, current.secondary_label, { 212, 207, 190, 20 }, g_fonts.body_bold, colors::text,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-    text(dc, current.secondary_description, { 212, 227, 190, 17 }, g_fonts.small, colors::muted,
+    text(dc, current.secondary_description, { 212, 227, 190, 17 }, g_fonts.small_font, colors::muted,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     draw_switch(dc, k_secondary_toggle, g_state.secondary[g_state.active_tab]);
 
     line(dc, 212, 249, 460, 249, colors::border);
     text(dc, current.intensity_label, { 212, 254, 150, 20 }, g_fonts.body_bold, colors::text,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-    text(dc, percent_text(g_state.intensity[g_state.active_tab]), { 400, 254, 47, 20 }, g_fonts.small, colors::accent_blue,
+    text(dc, percent_text(g_state.intensity[g_state.active_tab]), { 400, 254, 47, 20 }, g_fonts.small_font, colors::accent_blue,
         DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
     draw_slider(dc, g_state.intensity[g_state.active_tab]);
 
     // Profile card.
     rounded_rect(dc, { 196, 310, 280, 156 }, 14, colors::surface, colors::border);
-    text(dc, L"PROFILE", { 212, 325, 130, 18 }, g_fonts.small, colors::accent_blue,
+    text(dc, L"PROFILE", { 212, 325, 130, 18 }, g_fonts.small_font, colors::accent_blue,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     text(dc, L"Preset behaviour", { 212, 347, 190, 21 }, g_fonts.body_bold, colors::text,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    text(dc, L"Choose the balance that fits this page.", { 212, 367, 236, 17 }, g_fonts.small, colors::muted,
+    text(dc, L"Choose the balance that fits this page.", { 212, 367, 236, 17 }, g_fonts.small_font, colors::muted,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     draw_mode_button(dc, 0, L"Soft");
@@ -356,16 +369,16 @@ void draw_menu(HDC dc, const int width, const int height) {
     draw_mode_button(dc, 2, L"Focused");
 
     rounded_rect(dc, { 212, 431, 248, 20 }, 7, colors::background, colors::background);
-    text(dc, L"Click a preset to switch instantly", { 221, 431, 220, 20 }, g_fonts.small, colors::muted,
+    text(dc, L"Click a preset to switch instantly", { 221, 431, 220, 20 }, g_fonts.small_font, colors::muted,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 
     // Hotkey card.
     rounded_rect(dc, { 196, 486, 280, 102 }, 14, colors::surface, colors::border);
-    text(dc, L"QUICK ACCESS", { 212, 501, 145, 18 }, g_fonts.small, colors::accent_blue,
+    text(dc, L"QUICK ACCESS", { 212, 501, 145, 18 }, g_fonts.small_font, colors::accent_blue,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     text(dc, L"Menu hotkey", { 212, 523, 130, 20 }, g_fonts.body_bold, colors::text,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    text(dc, L"Open or hide the interface at any time.", { 212, 545, 176, 17 }, g_fonts.small, colors::muted,
+    text(dc, L"Open or hide the interface at any time.", { 212, 545, 176, 17 }, g_fonts.small_font, colors::muted,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
     rounded_rect(dc, { 389, 523, 71, 30 }, 8, colors::background, colors::border);
     text(dc, L"INSERT", { 389, 523, 71, 30 }, g_fonts.mono, colors::text,
@@ -376,7 +389,7 @@ void draw_menu(HDC dc, const int width, const int height) {
     circle(dc, 221, 634, 5, colors::success, colors::success);
     text(dc, L"Interface ready", { 235, 621, 150, 19 }, g_fonts.body_bold, colors::text,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    text(dc, L"All controls are local and responsive.", { 235, 641, 205, 17 }, g_fonts.small, colors::muted,
+    text(dc, L"All controls are local and responsive.", { 235, 641, 205, 17 }, g_fonts.small_font, colors::muted,
         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 }
 
